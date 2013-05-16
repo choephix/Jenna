@@ -8,25 +8,56 @@ public static class Jenna {
 	protected readonly ManualResetEvent _completed; 
 	protected readonly SpeechSynthesizer _synthesizer;
 	
+	public bool listening = false;
+	public SpeechReconitionResult ReadResult { get; set; }
+	
+	/// GRAMMARS
+	
+	protected Grammar grammarTest;
+	protected Grammar grammarAnimals;
+	protected DictationGrammar grammarDictation;
+	
 	Jenna() {
 	
     	 _completed = new ManualResetEvent(false);
 		_recognizer = new SpeechRecognitionEngine();
 		_synthesizer = new SpeechSynthesizer();
 		
-		_recognizer.RequestRecognizerUpdate();
-		_recognizer.LoadGrammar(new Grammar(new GrammarBuilder("test")) { Name = "testGrammar" });
+		InitializeGrammars();
 		
-		_recognizer.SpeechRecognized += _recognizer_SpeechRecognized; 
+		_recognizer.RequestRecognizerUpdate();
+		_recognizer.LoadGrammar( grammarTest );
+		
+		_recognizer.SpeechRecognized += _recognizer_SpeechRecognized;
 		_recognizer.SpeechRecognitonRejected += _recognizer_SpeechRecognitionRejected;
 		
 		_recognizer.SetInputToDefaultAudioDevice();
 		
 		_recognizer.RecognizeAsync(RecognizeMode.Multiple);
+		listening = true;
 		
 	     _completed.WaitOne(); // wait until speech recognition is completed
 	     _recognizer.Dispose(); // dispose the speech recognition engine
 	     
+	}
+	
+	void InitializeGrammars() {
+		
+		grammarTest = new Grammar(new GrammarBuilder("test")) { Name = "testGrammar" };
+		 
+		grammarAnimals = new Grammar(new GrammarBuilder(new Choices("dog","cat","snake"))) { Name = "animalGrammar" };
+		
+		grammarDictation = new DictationGrammar();
+		
+	}
+	
+	void SetTolerances() {
+		
+        _recognizer.BabbleTimeout = TimeSpan.FromSeconds(10.0);
+        _recognizer.EndSilenceTimeout = TimeSpan.FromSeconds(10.0);
+        _recognizer.EndSilenceTimeoutAmbiguous = TimeSpan.FromSeconds(10.0);
+        _recognizer.InitialSilenceTimeout = TimeSpan.FromSeconds(10.0);
+            
 	}
 	
 	void Say( string msg ) {
@@ -37,14 +68,13 @@ public static class Jenna {
 	}
 	
 	void _recognizer_SpeechRecognized(object sender, SpeechRecognizedEventArgs e)	{
-	     if (e.Result.Text == "test") {
-	         Say("The test was successful!");
-	     } else 
-	     if (e.Result.Text == "exit") {
-	     	_recognizer.Dispose();
-	     	_synthesizer.Dispose();
-	        _completed.Set();
-	     }
+		if (e.Result.Text == "test") {
+			Say("The test was successful!");
+		} else 
+		if (e.Result.Text == "exit") {
+			_completed.Set();
+			Dispose();
+		}
 	} 
 	
 	void _recognizer_SpeechRecognitionRejected(object sender, SpeechRecognitionRejectedEventArgs e) {
@@ -58,4 +88,20 @@ public static class Jenna {
 	   }
 	}
 	
+	void Dispose() {
+		
+		_recognizer.RecognizeAsyncStop();
+		_recognizer.UnloadAllGrammar();
+     	_recognizer.Dispose();
+     	_synthesizer.Dispose();
+		
+	}
+	
+}
+
+public class SpeechReconitionResult {
+    public string Text { get; set; }
+    public bool Success { get; set; }
+    public string ErrorMessage { get; set; }
+    public bool Complete { get; set; }
 }
