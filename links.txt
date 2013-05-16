@@ -1,0 +1,10 @@
+
+
+SQL
+http://www.redmondpie.com/speech-recognition-in-a-c-wpf-application/
+
+VOICE BIOMETRICS
+http://sourceforge.net/projects/boiapi-dt/
+
+TESTS
+http://www.google.com/intl/en/chrome/demos/speech.html
